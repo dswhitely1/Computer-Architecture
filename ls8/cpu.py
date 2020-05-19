@@ -1,6 +1,10 @@
 """CPU functionality."""
-
 import sys
+
+LDI = 0b10000010
+PRN = 0b01000111
+HLT = 0b00000001
+MUL = 0b10100010
 
 
 class CPU:
@@ -11,6 +15,7 @@ class CPU:
         self.pc = 0
         self.ram = [0] * 256
         self.reg = [0] * 8
+        self.instruction = {LDI: self.ldi, PRN: self.prn, MUL: self.mul, HLT: self.hlt}
 
     def load(self):
         """Load a program into memory."""
@@ -80,32 +85,29 @@ class CPU:
     def ram_write(self, address, value):
         self.reg[address] = value
 
+    def ldi(self):
+        address = self.ram[self.pc + 1]
+        value = self.ram[self.pc + 2]
+        self.ram_write(address, value)
+        count = self.get_arg_count(LDI)
+        self.pc += count + 1
+
+    def prn(self):
+        address = self.ram[self.pc + 1]
+        print(self.ram_read(address))
+        count = self.get_arg_count(PRN)
+        self.pc += count + 1
+
+    def mul(self):
+        self.alu('MUL', self.ram[self.pc + 1], self.ram[self.pc + 2])
+        self.pc += self.get_arg_count(MUL) + 1
+
+    def hlt(self):
+        exit(0)
+
     def run(self):
         """Run the CPU."""
-        LDI = 0b10000010
-        PRN = 0b01000111
-        HLT = 0b00000001
-        MUL = 0b10100010
-        halted = False
-        while not halted:
-            instruction = self.ram[self.pc]
-            if instruction is LDI:
-                address = self.ram[self.pc + 1]
-                value = self.ram[self.pc + 2]
-                self.ram_write(address, value)
-                count = self.get_arg_count(LDI)
-                self.pc += count + 1
-            elif instruction is PRN:
-                address = self.ram[self.pc + 1]
-                print(self.ram_read(address))
-                count = self.get_arg_count(PRN)
-                self.pc += count + 1
-            elif instruction is MUL:
-                self.alu('MUL', self.ram[self.pc + 1], self.ram[self.pc + 2])
-                self.pc += self.get_arg_count(MUL) + 1
-            elif instruction is HLT:
-                halted = True
-            else:
-                print("Instruction Not Implemented")
-                self.trace()
-                exit(1)
+        run = True
+        while run:
+            self.instruction[self.ram[self.pc]]()
+
