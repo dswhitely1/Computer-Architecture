@@ -7,8 +7,9 @@ class CPU:
 
     def __init__(self):
         """Construct a new CPU."""
-        pass
-
+        self.pc = 0
+        self.ram = [0] * 8
+        self.reg = [0] * 8
     def load(self):
         """Load a program into memory."""
 
@@ -60,6 +61,33 @@ class CPU:
 
         print()
 
+    def ram_read(self, address):
+        return self.ram[address]
+
+    def ram_write(self, address, value):
+        self.ram[address] = value
+
     def run(self):
         """Run the CPU."""
-        pass
+        LDI = 0b10000010
+        PRN = 0b01000111
+        HLT = 0b00000001
+        halted = False
+        while not halted:
+            instruction = self.ram[self.pc]
+            if instruction is LDI:
+                address = self.ram[self.pc + 1]
+                value = self.ram[self.pc + 2]
+                self.ram_write(address, value)
+                self.pc += 3
+            elif instruction is PRN:
+                address = self.ram[self.pc + 1]
+                print(self.ram[address])
+                self.pc += 2
+            elif instruction is HLT:
+                halted = True
+            else:
+                print("Instruction Not Implemented")
+                self.trace()
+                exit(1)
+
