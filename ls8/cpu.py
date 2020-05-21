@@ -7,8 +7,11 @@ HLT = 0b00000001
 MUL = 0b10100010
 PUSH = 0b01000101
 POP = 0b01000110
-SP = 0xf3
-
+SP_MEM = 0xf3
+CALL = 0b01010000
+RET = 0b00010001
+SP = 7
+ADD = 0b10100000
 
 class CPU:
     """Main CPU class."""
@@ -18,8 +21,9 @@ class CPU:
         self.pc = 0x00
         self.ram = [0] * 256
         self.reg = [0] * 8
-        self.sp = SP
-        self.instruction = {LDI: self.ldi, PRN: self.prn, MUL: self.mul, HLT: self.hlt, POP: self.pop, PUSH: self.push}
+        self.reg[SP] = SP_MEM
+        self.instruction = {LDI: self.ldi, PRN: self.prn, MUL: self.mul, HLT: self.hlt, POP: self.pop, PUSH: self.push,
+                            CALL: self.call, RET: self.ret, ADD: self.add}
 
     def load(self):
         """Load a program into memory."""
@@ -109,20 +113,38 @@ class CPU:
     def hlt(self):
         exit(0)
 
+    def call(self):
+        return_addr = self.pc + 2
+        self.reg[SP] -= 1
+        self.ram_write(self.reg[SP], return_addr)
+        reg_num = self.ram_read(self.pc + 1)
+        subroutine_add = self.reg[reg_num]
+        self.pc = subroutine_add
+
+    def ret(self):
+        return_addr = self.ram_read(self.reg[SP])
+        self.reg[SP] += 1
+        self.pc = return_addr
+
     def push(self):
-        self.sp -= 1
+        self.reg[SP] -= 1
         address = self.ram_read(self.pc + 1)
-        self.ram_write(self.sp, self.reg[address])
+        self.ram_write(self.reg[SP], self.reg[address])
         self.pc += self.get_arg_count(PUSH) + 1
 
     def pop(self):
         address = self.ram[self.pc + 1]
-        self.reg[address] = self.ram_read(self.sp)
+        self.reg[address] = self.ram_read(self.reg[SP])
         self.pc += self.get_arg_count(POP) + 1
-        self.sp += 1
+        self.reg[SP] += 1
+
+    def add(self):
+        self.alu('ADD', self.ram[self.pc + 1], self.ram[self.pc + 2])
+        self.pc += self.get_arg_count(MUL) + 1
 
     def run(self):
         """Run the CPU."""
         run = True
         while run:
+            # print(self.ram[self.pc])
             self.instruction[self.ram[self.pc]]()
